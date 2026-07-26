@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEDGER — Prop Firm Account Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#181716;
+    --bg-panel:rgba(255,255,255,0.035);
+    --bg-panel-2:rgba(255,255,255,0.06);
+    --border:rgba(255,255,255,0.10);
+    --border-soft:rgba(255,255,255,0.07);
+    --text:#F7F4EF;
+    --text-dim:rgba(247,244,239,0.62);
+    --text-faint:rgba(247,244,239,0.36);
+    --accent:#D97757;
+    --accent-light:#E89478;
+    --accent-deep:#B85F3F;
+    --grad:linear-gradient(135deg, var(--accent-light), var(--accent-deep));
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 520px at 12% -8%, rgba(217,119,87,0.16), transparent 60%),
+      radial-gradient(ellipse 800px 480px at 100% 0%, rgba(217,119,87,0.09), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:32px 24px 80px;
+  }
+  .wrap{max-width:1180px; margin:0 auto;}
+
+  header{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    margin-bottom:28px; flex-wrap:wrap; gap:16px;
+    border-bottom:1px solid var(--border-soft);
+    padding-bottom:20px;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{
+    width:40px; height:40px; border-radius:10px;
+    background:var(--grad);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px; color:#181716;
+    box-shadow:0 0 24px rgba(217,119,87,0.35);
+  }
+  .brand-text h1{
+    font-family:'Space Grotesk',sans-serif; font-size:21px; letter-spacing:0.2px; font-weight:600; color:var(--text);
+  }
+  .brand-text p{font-size:12.5px; color:var(--text-dim); margin-top:2px;}
+  .date-chip{
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-dim);
+    border:1px solid var(--border); padding:7px 12px; border-radius:8px;
+    background:var(--bg-panel); backdrop-filter:blur(16px);
+  }
+
+  .stats{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px;
+  }
+  @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{
+    background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:14px;
+    padding:16px 18px; position:relative; overflow:hidden; backdrop-filter:blur(20px);
+  }
+  .stat::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:var(--grad); opacity:0.7;
+  }
+  .stat-label{font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-faint); font-weight:600;}
+  .stat-value{
+    font-family:'JetBrains Mono',monospace; font-size:23px; font-weight:600; margin-top:8px; color:var(--text);
+  }
+  .stat-sub{font-size:11.5px; color:var(--text-dim); margin-top:4px;}
+
+  .tabs{display:flex; gap:8px; margin-bottom:20px;}
+  .tab-btn{
+    font-family:'Space Grotesk',sans-serif; font-size:13.5px; font-weight:600; padding:10px 20px;
+    border-radius:10px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text-dim);
+    cursor:pointer; transition:all .15s ease; backdrop-filter:blur(16px);
+  }
+  .tab-btn.active{background:rgba(217,119,87,0.14); border-color:rgba(217,119,87,0.4); color:var(--accent-light);}
+  .tab-btn:hover:not(.active){color:var(--text); border-color:var(--text-faint);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .toolbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin-bottom:16px; flex-wrap:wrap;
+  }
+  .filters{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .pill-filter{
+    font-family:'JetBrains Mono',monospace; font-size:12px; padding:7px 13px; border-radius:20px;
+    border:1px solid var(--border); background:var(--bg-panel); color:var(--text-dim); cursor:pointer;
+    transition:all .15s ease; user-select:none; backdrop-filter:blur(16px);
+  }
+  .pill-filter:hover{border-color:var(--text-faint); color:var(--text);}
+  .pill-filter.active{background:rgba(217,119,87,0.14); border-color:rgba(217,119,87,0.4); color:var(--accent-light);}
+  .search-box{
+    font-family:'Inter',sans-serif; font-size:13px; background:var(--bg-panel); border:1px solid var(--border);
+    color:var(--text); padding:8px 13px; border-radius:20px; width:190px; outline:none; backdrop-filter:blur(16px);
+  }
+  .search-box:focus{border-color:var(--accent);}
+  .actions-right{display:flex; gap:8px;}
+  .btn{
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:600; padding:9px 16px; border-radius:9px;
+    border:none; cursor:pointer; transition:all .15s ease; display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn-primary{background:var(--grad); color:#181716;}
+  .btn-primary:hover{box-shadow:0 0 20px rgba(217,119,87,0.4); transform:translateY(-1px);}
+  .btn-ghost{background:var(--bg-panel); color:var(--text-dim); border:1px solid var(--border); backdrop-filter:blur(16px);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--text-faint);}
+  .btn-sm{padding:6px 12px; font-size:12px;}
+
+  .table-wrap{
+    background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:16px; overflow:hidden;
+    backdrop-filter:blur(20px); box-shadow:0 20px 50px rgba(0,0,0,0.25);
+  }
+  table{width:100%; border-collapse:collapse;}
+  thead th{
+    text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.7px; color:var(--text-faint);
+    font-weight:600; padding:14px 16px; border-bottom:1px solid var(--border-soft); cursor:pointer; white-space:nowrap;
+  }
+  thead th:hover{color:var(--text-dim);}
+  tbody tr{border-bottom:1px solid var(--border-soft); transition:background .12s ease;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:rgba(217,119,87,0.05);}
+  tbody td{padding:13px 16px; font-size:13.5px; vertical-align:middle;}
+  .firm-cell{font-weight:600; font-family:'Space Grotesk',sans-serif; font-size:14px;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .dim{color:var(--text-dim);}
+  .market-tag{font-size:10.5px; color:var(--text-faint); font-family:'JetBrains Mono',monospace; text-transform:uppercase;}
+
+  /* Phase badges: distinguished by fill weight, not hue — outline -> tint -> solid as an account progresses, muted grey when breached */
+  .badge{
+    display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px;
+    font-weight:600; padding:5px 10px; border-radius:20px; letter-spacing:0.3px; white-space:nowrap;
+  }
+  .badge-dot{width:6px; height:6px; border-radius:50%;}
+  .badge-p1{background:transparent; color:var(--accent-light); border:1px solid rgba(217,119,87,0.45);}
+  .badge-p1 .badge-dot{background:var(--accent-light);}
+  .badge-p2{background:rgba(217,119,87,0.14); color:var(--accent-light); border:1px solid rgba(217,119,87,0.4);}
+  .badge-p2 .badge-dot{background:var(--accent-light);}
+  .badge-funded{background:var(--accent); color:#181716; border:1px solid var(--accent); font-weight:700;}
+  .badge-funded .badge-dot{background:#181716; box-shadow:0 0 6px rgba(0,0,0,0.3); animation:pulse 2.4s infinite;}
+  .badge-failed{background:rgba(255,255,255,0.05); color:var(--text-faint); border:1px solid var(--border);}
+  .badge-failed .badge-dot{background:var(--text-faint);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+  .row-actions{display:flex; gap:6px; opacity:0; transition:opacity .12s ease;}
+  tbody tr:hover .row-actions{opacity:1;}
+  .icon-btn{
+    width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:var(--bg-panel-2);
+    color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px;
+  }
+  .icon-btn:hover{color:var(--text); border-color:var(--text-faint);}
+  .icon-btn.danger:hover{color:var(--accent-light); border-color:var(--accent);}
+
+  .empty-state{padding:60px 20px; text-align:center; color:var(--text-dim);}
+  .empty-state h3{font-family:'Space Grotesk',sans-serif; color:var(--text); font-size:16px; margin-bottom:6px;}
+  .empty-state p{font-size:13px; margin-bottom:18px;}
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,9,8,0.72); backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)), #201E1C;
+    border:1px solid var(--border); border-radius:18px; width:100%; max-width:460px;
+    padding:26px; box-shadow:0 30px 80px rgba(0,0,0,0.5), 0 0 40px rgba(217,119,87,0.07);
+    max-height:90vh; overflow-y:auto; backdrop-filter:blur(24px);
+  }
+  .modal h2{font-family:'Space Grotesk',sans-serif; font-size:18px; margin-bottom:18px; color:var(--text);}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-faint); margin-bottom:6px; font-weight:600;}
+  .field input, .field select{
+    width:100%; padding:10px 12px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:9px;
+    color:var(--text); font-family:'Inter',sans-serif; font-size:13.5px; outline:none;
+  }
+  .field input:focus, .field select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(217,119,87,0.12);}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:20px;}
+  .inline-new-firm{display:none; gap:8px; margin-top:8px;}
+  .inline-new-firm.show{display:flex;}
+  .inline-new-firm input{flex:1;}
+
+  .manage-cols{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .manage-col h3{font-size:12px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-faint); margin-bottom:10px;}
+  .chip-list{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:30px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid var(--border);
+    padding:5px 6px 5px 11px; border-radius:16px; font-size:12px; font-family:'JetBrains Mono',monospace; color:var(--text);
+  }
+  .chip button{
+    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:13px; padding:2px 6px;
+    border-radius:50%; line-height:1;
+  }
+  .chip button:hover{color:var(--accent-light);}
+  .add-firm-row{display:flex; gap:6px;}
+  .add-firm-row input{flex:1; padding:8px 10px; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+    border-radius:7px; color:var(--text); font-size:12.5px; outline:none;}
+  .add-firm-row input:focus{border-color:var(--accent);}
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+    background:rgba(32,30,28,0.92); border:1px solid var(--border); color:var(--text); padding:11px 20px;
+    border-radius:10px; font-size:13px; transition:all .25s ease; pointer-events:none; z-index:60;
+    font-family:'JetBrains Mono',monospace; backdrop-filter:blur(16px); box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  footer{margin-top:28px; text-align:center; font-size:11.5px; color:var(--text-faint);}
+  .net-pos{color:var(--accent-light);}
+  .net-neg{color:var(--text-dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">Ξ</div>
+      <div class="brand-text">
+        <h1>Ledger</h1>
+        <p>Prop firm account &amp; payout tracker</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div class="date-chip" id="ledgerIdChip" style="cursor:pointer;" title="View or switch your Ledger ID">ID: ···</div>
+      <div class="date-chip" id="todayChip"></div>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Accounts</div>
+      <div class="stat-value" id="statCount">0</div>
+      <div class="stat-sub" id="statCountSub">across 0 firms</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Capital Tracked</div>
+      <div class="stat-value" id="statCapital">$0</div>
+      <div class="stat-sub">combined account size</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total Spent</div>
+      <div class="stat-value" id="statSpent">$0</div>
+      <div class="stat-sub">evals + resets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total Payouts</div>
+      <div class="stat-value" id="statPayouts">$0</div>
+      <div class="stat-sub" id="statPayoutsSub">0 payouts received</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Net Position</div>
+      <div class="stat-value" id="statNet">$0</div>
+      <div class="stat-sub">payouts − spend</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="accounts">Accounts</button>
+    <button class="tab-btn" data-tab="payouts">Payouts</button>
+  </div>
+
+  <!-- ACCOUNTS TAB -->
+  <div class="tab-panel active" id="tab-accounts">
+    <div class="toolbar">
+      <div class="filters" id="filterPills">
+        <div class="pill-filter active" data-filter="all">All</div>
+        <div class="pill-filter" data-filter="Phase 1">Phase 1</div>
+        <div class="pill-filter" data-filter="Phase 2">Phase 2</div>
+        <div class="pill-filter" data-filter="Funded">Funded</div>
+        <div class="pill-filter" data-filter="Breached">Breached</div>
+        <input class="search-box" id="searchBox" placeholder="Search firm...">
+      </div>
+      <div class="actions-right">
+        <button class="btn btn-ghost" id="manageFirmsBtn">⚙ Manage Firms</button>
+        <button class="btn btn-ghost" id="exportBtn">Export CSV</button>
+        <button class="btn btn-primary" id="addBtn">+ Add Account</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="firm">Firm</th>
+            <th data-sort="type">Type</th>
+            <th data-sort="size">Size</th>
+            <th data-sort="phase">Phase</th>
+            <th data-sort="cost">Cost</th>
+            <th data-sort="date">Purchased</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <h3>No accounts yet</h3>
+        <p>Add your first prop firm account to start tracking the fleet.</p>
+        <button class="btn btn-primary" id="emptyAddBtn">+ Add Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAYOUTS TAB -->
+  <div class="tab-panel" id="tab-payouts">
+    <div class="toolbar">
+      <div class="filters">
+        <input class="search-box" id="payoutSearchBox" placeholder="Search firm...">
+      </div>
+      <div class="actions-right">
+        <button class="btn btn-ghost" id="exportPayoutsBtn">Export CSV</button>
+        <button class="btn btn-primary" id="addPayoutBtn">+ Add Payout</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-psort="firm">Firm</th>
+            <th data-psort="amount">Amount</th>
+            <th data-psort="date">Date</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="payoutBody"></tbody>
+      </table>
+      <div class="empty-state" id="payoutEmptyState" style="display:none;">
+        <h3>No payouts yet</h3>
+        <p>Log a payout once one of your funded accounts pays out.</p>
+        <button class="btn btn-primary" id="emptyAddPayoutBtn">+ Add Payout</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Saves locally on this device · connect a Ledger ID above to sync across devices via the cloud</footer>
+</div>
+
+<!-- ADD/EDIT ACCOUNT MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Add Account</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Market</label>
+        <select id="f_market">
+          <option value="futures">Futures</option>
+          <option value="cfd">CFD</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Firm</label>
+        <select id="f_firm"></select>
+        <div class="inline-new-firm" id="newFirmInline">
+          <input id="newFirmInput" placeholder="New firm name">
+          <button class="btn btn-primary btn-sm" id="confirmNewFirm">Save</button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Account Type</label>
+        <input id="f_type" placeholder="e.g. 2-Step, Instant">
+      </div>
+      <div class="field">
+        <label>Account Size ($)</label>
+        <select id="f_size_select">
+          <option value="5000">$5,000</option>
+          <option value="10000">$10,000</option>
+          <option value="25000">$25,000</option>
+          <option value="50000">$50,000</option>
+          <option value="100000" selected>$100,000</option>
+          <option value="150000">$150,000</option>
+          <option value="200000">$200,000</option>
+          <option value="__custom__">Custom...</option>
+        </select>
+        <input id="f_size" type="number" placeholder="Enter custom size" style="display:none; margin-top:8px;">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Phase</label>
+        <select id="f_phase">
+          <option>Phase 1</option>
+          <option>Phase 2</option>
+          <option>Funded</option>
+          <option>Breached</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cost ($)</label>
+        <input id="f_cost" type="number" placeholder="199">
+      </div>
+    </div>
+    <div class="field">
+      <label>Date Purchased</label>
+      <input id="f_date" type="date">
+    </div>
+    <div class="field">
+      <label>Notes (optional)</label>
+      <input id="f_notes" placeholder="e.g. profit split 90%, discount code used">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn">Save Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PAYOUT MODAL -->
+<div class="overlay" id="payoutOverlay">
+  <div class="modal">
+    <h2 id="payoutModalTitle">Add Payout</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Market</label>
+        <select id="p_market">
+          <option value="futures">Futures</option>
+          <option value="cfd">CFD</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Firm</label>
+        <select id="p_firm"></select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Payout Amount ($)</label>
+        <input id="p_amount" type="number" placeholder="850">
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input id="p_date" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes (optional)</label>
+      <input id="p_notes" placeholder="e.g. 1st payout, via Rise">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="payoutCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="payoutSaveBtn">Save Payout</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE FIRMS MODAL -->
+<div class="overlay" id="manageOverlay">
+  <div class="modal" style="max-width:560px;">
+    <h2>Manage Firms</h2>
+    <div class="manage-cols">
+      <div class="manage-col">
+        <h3>Futures</h3>
+        <div class="chip-list" id="futuresChips"></div>
+        <div class="add-firm-row">
+          <input id="newFuturesFirm" placeholder="Add futures firm...">
+          <button class="btn btn-primary btn-sm" id="addFuturesFirmBtn">Add</button>
+        </div>
+      </div>
+      <div class="manage-col">
+        <h3>CFD</h3>
+        <div class="chip-list" id="cfdChips"></div>
+        <div class="add-firm-row">
+          <input id="newCfdFirm" placeholder="Add CFD firm...">
+          <button class="btn btn-primary btn-sm" id="addCfdFirmBtn">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="closeManageBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEDGER SYNC MODAL -->
+<div class="overlay" id="ledgerOverlay">
+  <div class="modal">
+    <h2>Sync This Ledger</h2>
+    <div class="field">
+      <label>Your Ledger ID</label>
+      <input id="currentLedgerIdInput" readonly>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="copyLedgerIdBtn">Copy ID</button>
+    <p style="font-size:12px; color:var(--text-dim); margin-top:14px; line-height:1.5;">
+      This ID is what connects your data to the cloud. Enter this same ID on another device (like the app on your laptop) to see the exact same accounts and payouts there too.
+    </p>
+    <div class="field" style="margin-top:16px;">
+      <label>Connect to a different Ledger ID</label>
+      <input id="switchLedgerIdInput" placeholder="Paste an existing ID">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="closeLedgerBtn">Close</button>
+      <button class="btn btn-primary" id="switchLedgerBtn">Switch</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ACC_KEY = 'prop_accounts_v2';
+const PAYOUT_KEY = 'prop_payouts_v1';
+const FIRMS_KEY = 'prop_firms_v1';
+const LEDGER_ID_KEY = 'prop_ledger_id';
+
+function defaultFirms(){
+  return { futures:['Tradeify','Lucid','FNFutures','FundedSeat'], cfd:['FundingPips','FundedNext','Breakout'] };
+}
+
+let accounts = [];
+let payouts = [];
+let firmLists = defaultFirms();
+let editingId = null;
+let editingPayoutId = null;
+let currentFilter = 'all';
+let sortKey = 'date', sortDir = -1;
+let psortKey = 'date', psortDir = -1;
+let ledgerId = localStorage.getItem(LEDGER_ID_KEY);
+if(!ledgerId){
+  ledgerId = Math.random().toString(36).slice(2,8).toUpperCase();
+  localStorage.setItem(LEDGER_ID_KEY, ledgerId);
+}
+
+const $ = (id) => document.getElementById(id);
+const fmtMoney = (n) => '$' + Number(n||0).toLocaleString('en-US');
+const uid = (p) => p+'_'+Date.now()+Math.random().toString(36).slice(2,7);
+
+$('todayChip').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+$('ledgerIdChip').textContent = 'ID: ' + ledgerId;
+
+function cacheLocally(){
+  localStorage.setItem(ACC_KEY, JSON.stringify(accounts));
+  localStorage.setItem(PAYOUT_KEY, JSON.stringify(payouts));
+  localStorage.setItem(FIRMS_KEY, JSON.stringify(firmLists));
+}
+function loadLocalCache(){
+  try{ accounts = JSON.parse(localStorage.getItem(ACC_KEY)) || []; }catch(e){ accounts = []; }
+  try{ payouts = JSON.parse(localStorage.getItem(PAYOUT_KEY)) || []; }catch(e){ payouts = []; }
+  try{ firmLists = JSON.parse(localStorage.getItem(FIRMS_KEY)) || defaultFirms(); }catch(e){ firmLists = defaultFirms(); }
+}
+
+// Every save goes local-first (always works), then optionally hands off to
+// the Firebase layer below if it managed to initialize. If Firebase never
+// loads (no config yet, offline, opened via file://, etc.) the app is
+// still 100% functional on localStorage alone.
+function persist(){
+  cacheLocally();
+  if(window.LedgerApp && typeof window.LedgerApp.onSave === 'function'){
+    window.LedgerApp.onSave({ accounts, payouts, firms: firmLists });
+  }
+}
+function saveAccounts(){ persist(); }
+function savePayouts(){ persist(); }
+function saveFirms(){ persist(); }
+
+// Public hook surface for the optional Firebase module at the bottom of the page.
+window.LedgerApp = {
+  getSnapshot(){ return { accounts, payouts, firms: firmLists }; },
+  getLedgerId(){ return ledgerId; },
+  applyRemote(data){
+    accounts = data.accounts || [];
+    payouts = data.payouts || [];
+    firmLists = data.firms || firmLists;
+    cacheLocally();
+    render();
+    renderPayouts();
+  },
+  onSave: null
+};
+
+function loadAll(){
+  loadLocalCache();
+  render();
+  renderPayouts();
+}
+
+$('ledgerIdChip').addEventListener('click', ()=>{
+  $('currentLedgerIdInput').value = ledgerId;
+  $('switchLedgerIdInput').value = '';
+  $('ledgerOverlay').classList.add('open');
+});
+$('closeLedgerBtn').addEventListener('click', ()=> $('ledgerOverlay').classList.remove('open'));
+$('copyLedgerIdBtn').addEventListener('click', ()=>{
+  navigator.clipboard.writeText(ledgerId);
+  showToast('Ledger ID copied');
+});
+$('switchLedgerBtn').addEventListener('click', ()=>{
+  const newId = $('switchLedgerIdInput').value.trim().toUpperCase();
+  if(!newId){ showToast('Enter an ID first'); return; }
+  localStorage.setItem(LEDGER_ID_KEY, newId);
+  showToast('Switching ledger...');
+  setTimeout(()=> location.reload(), 400);
+});
+$('ledgerOverlay').addEventListener('click', (e)=>{ if(e.target.id==='ledgerOverlay') $('ledgerOverlay').classList.remove('open'); });
+
+function showToast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function daysAgo(dateStr){
+  if(!dateStr) return '';
+  const diff = Math.floor((Date.now()-new Date(dateStr).getTime())/86400000);
+  if(diff===0) return 'today';
+  if(diff===1) return '1 day ago';
+  return diff+' days ago';
+}
+function badgeFor(phase){
+  const map = {'Phase 1':'badge-p1','Phase 2':'badge-p2','Funded':'badge-funded','Breached':'badge-failed'};
+  return `<span class="badge ${map[phase]||'badge-p1'}"><span class="badge-dot"></span>${phase}</span>`;
+}
+
+/* ---------- TABS ---------- */
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    $('tab-'+b.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------- FIRM DROPDOWNS ---------- */
+function populateFirmSelect(selectEl, market, selectedValue){
+  selectEl.innerHTML = '';
+  firmLists[market].forEach(f=>{
+    const o = document.createElement('option');
+    o.value = f; o.textContent = f;
+    selectEl.appendChild(o);
+  });
+  const addOpt = document.createElement('option');
+  addOpt.value = '__new__'; addOpt.textContent = '+ Add New Firm...';
+  selectEl.appendChild(addOpt);
+  if(selectedValue && firmLists[market].includes(selectedValue)) selectEl.value = selectedValue;
+}
+
+$('f_size_select').addEventListener('change', ()=>{
+  if($('f_size_select').value === '__custom__'){
+    $('f_size').style.display = 'block'; $('f_size').value=''; $('f_size').focus();
+  } else {
+    $('f_size').style.display = 'none'; $('f_size').value = $('f_size_select').value;
+  }
+});
+const STANDARD_SIZES = ['5000','10000','25000','50000','100000','150000','200000'];
+function setSizeField(size){
+  const s = String(size);
+  if(STANDARD_SIZES.includes(s)){
+    $('f_size_select').value = s; $('f_size').style.display='none'; $('f_size').value = s;
+  } else {
+    $('f_size_select').value = '__custom__'; $('f_size').style.display='block'; $('f_size').value = s;
+  }
+}
+
+$('f_market').addEventListener('change', ()=> populateFirmSelect($('f_firm'), $('f_market').value));
+$('f_firm').addEventListener('change', ()=>{
+  if($('f_firm').value === '__new__'){
+    $('newFirmInline').classList.add('show');
+    $('newFirmInput').value=''; $('newFirmInput').focus();
+  } else {
+    $('newFirmInline').classList.remove('show');
+  }
+});
+$('confirmNewFirm').addEventListener('click', ()=>{
+  const name = $('newFirmInput').value.trim();
+  if(!name){ showToast('Enter a firm name'); return; }
+  const market = $('f_market').value;
+  if(!firmLists[market].includes(name)) firmLists[market].push(name);
+  saveFirms();
+  populateFirmSelect($('f_firm'), market, name);
+  $('newFirmInline').classList.remove('show');
+  showToast(name+' added to '+ (market==='futures'?'Futures':'CFD'));
+});
+
+$('p_market').addEventListener('change', ()=> populateFirmSelect($('p_firm'), $('p_market').value));
+
+/* ---------- MANAGE FIRMS MODAL ---------- */
+function renderManageFirms(){
+  const renderChips = (market, containerId) => {
+    const c = $(containerId);
+    c.innerHTML = '';
+    firmLists[market].forEach(f=>{
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = `${escapeHtml(f)} <button data-remove="${f}" data-market="${market}">×</button>`;
+      c.appendChild(chip);
+    });
+    c.querySelectorAll('button').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const mkt = b.dataset.market, name = b.dataset.remove;
+        firmLists[mkt] = firmLists[mkt].filter(x=>x!==name);
+        saveFirms();
+        renderManageFirms();
+        populateFirmSelect($('f_firm'), $('f_market').value);
+        populateFirmSelect($('p_firm'), $('p_market').value);
+      });
+    });
+  };
+  renderChips('futures','futuresChips');
+  renderChips('cfd','cfdChips');
+}
+$('manageFirmsBtn').addEventListener('click', ()=>{ renderManageFirms(); $('manageOverlay').classList.add('open'); });
+$('closeManageBtn').addEventListener('click', ()=> $('manageOverlay').classList.remove('open'));
+$('addFuturesFirmBtn').addEventListener('click', ()=>{
+  const v = $('newFuturesFirm').value.trim();
+  if(!v) return;
+  if(!firmLists.futures.includes(v)) firmLists.futures.push(v);
+  saveFirms(); $('newFuturesFirm').value=''; renderManageFirms();
+  populateFirmSelect($('f_firm'), $('f_market').value);
+  populateFirmSelect($('p_firm'), $('p_market').value);
+});
+$('addCfdFirmBtn').addEventListener('click', ()=>{
+  const v = $('newCfdFirm').value.trim();
+  if(!v) return;
+  if(!firmLists.cfd.includes(v)) firmLists.cfd.push(v);
+  saveFirms(); $('newCfdFirm').value=''; renderManageFirms();
+  populateFirmSelect($('f_firm'), $('f_market').value);
+  populateFirmSelect($('p_firm'), $('p_market').value);
+});
+
+/* ---------- ACCOUNTS RENDER ---------- */
+function render(){
+  let list = accounts.filter(a=>{
+    if(currentFilter!=='all' && a.phase!==currentFilter) return false;
+    const q = $('searchBox').value.trim().toLowerCase();
+    if(q && !a.firm.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  list.sort((a,b)=>{
+    let va=a[sortKey], vb=b[sortKey];
+    if(sortKey==='size'||sortKey==='cost'){va=Number(va)||0; vb=Number(vb)||0;}
+    if(va<vb) return -1*sortDir; if(va>vb) return 1*sortDir; return 0;
+  });
+
+  const body = $('tableBody'); body.innerHTML = '';
+  $('emptyState').style.display = accounts.length===0 ? 'block' : 'none';
+
+  list.forEach(a=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="firm-cell">${escapeHtml(a.firm)}<div class="market-tag">${a.market||''}</div></td>
+      <td class="dim">${escapeHtml(a.type||'—')}</td>
+      <td class="mono">${fmtMoney(a.size)}</td>
+      <td>${badgeFor(a.phase)}</td>
+      <td class="mono">${fmtMoney(a.cost)}</td>
+      <td class="dim mono" title="${a.date||''}">${daysAgo(a.date)}</td>
+      <td class="dim" style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(a.notes||'—')}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn" data-edit="${a.id}" title="Edit">✎</button>
+        <button class="icon-btn danger" data-del="${a.id}" title="Delete">✕</button>
+      </div></td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.edit)));
+  body.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>deleteAccount(b.dataset.del)));
+  renderStats();
+}
+
+function renderStats(){
+  const total = accounts.length;
+  const firms = new Set(accounts.map(a=>a.firm.toLowerCase())).size;
+  const capital = accounts.reduce((s,a)=>s+Number(a.size||0),0);
+  const spent = accounts.reduce((s,a)=>s+Number(a.cost||0),0);
+  const totalPayouts = payouts.reduce((s,p)=>s+Number(p.amount||0),0);
+  const net = totalPayouts - spent;
+
+  $('statCount').textContent = total;
+  $('statCountSub').textContent = `across ${firms} firm${firms!==1?'s':''}`;
+  $('statCapital').textContent = fmtMoney(capital);
+  $('statSpent').textContent = fmtMoney(spent);
+  $('statPayouts').textContent = fmtMoney(totalPayouts);
+  $('statPayoutsSub').textContent = `${payouts.length} payout${payouts.length!==1?'s':''} received`;
+  const netEl = $('statNet');
+  netEl.textContent = (net<0?'-':'') + fmtMoney(Math.abs(net));
+  netEl.className = 'stat-value ' + (net>=0?'net-pos':'net-neg');
+}
+
+function openAdd(){
+  editingId = null;
+  $('modalTitle').textContent = 'Add Account';
+  $('f_market').value = 'futures';
+  populateFirmSelect($('f_firm'), 'futures');
+  $('newFirmInline').classList.remove('show');
+  $('f_type').value=''; setSizeField('100000'); $('f_phase').value='Phase 1'; $('f_cost').value='';
+  $('f_date').value = new Date().toISOString().slice(0,10);
+  $('f_notes').value='';
+  $('overlay').classList.add('open');
+}
+function openEdit(id){
+  const a = accounts.find(x=>x.id===id); if(!a) return;
+  editingId = id;
+  $('modalTitle').textContent = 'Edit Account';
+  $('f_market').value = a.market || 'futures';
+  populateFirmSelect($('f_firm'), $('f_market').value, a.firm);
+  $('newFirmInline').classList.remove('show');
+  $('f_type').value=a.type; setSizeField(a.size); $('f_phase').value=a.phase; $('f_cost').value=a.cost;
+  $('f_date').value=a.date; $('f_notes').value=a.notes||'';
+  $('overlay').classList.add('open');
+}
+function closeModal(){ $('overlay').classList.remove('open'); }
+
+function saveFromModal(){
+  const firmVal = $('f_firm').value;
+  if(!firmVal || firmVal==='__new__'){ showToast('Select or add a firm'); return; }
+  const data = {
+    market: $('f_market').value, firm: firmVal, type:$('f_type').value.trim(),
+    size:Number($('f_size').value)||0, phase:$('f_phase').value, cost:Number($('f_cost').value)||0,
+    date:$('f_date').value, notes:$('f_notes').value.trim()
+  };
+  if(editingId){
+    const idx = accounts.findIndex(a=>a.id===editingId);
+    accounts[idx] = {...accounts[idx], ...data};
+    showToast('Account updated');
+  } else {
+    accounts.push({id:uid('acc'), ...data});
+    showToast('Account added');
+  }
+  saveAccounts(); closeModal(); render();
+}
+function deleteAccount(id){
+  const a = accounts.find(x=>x.id===id); if(!a) return;
+  if(!confirm(`Remove ${a.firm} (${a.type||'account'}) from the ledger?`)) return;
+  accounts = accounts.filter(x=>x.id!==id);
+  saveAccounts(); showToast('Account removed'); render();
+}
+function exportCSV(){
+  const rows = [['Market','Firm','Type','Size','Phase','Cost','Date Purchased','Notes']];
+  accounts.forEach(a=>rows.push([a.market,a.firm,a.type,a.size,a.phase,a.cost,a.date,a.notes||'']));
+  downloadCSV(rows, 'prop-firm-ledger.csv');
+}
+
+/* ---------- PAYOUTS ---------- */
+function renderPayouts(){
+  let list = payouts.filter(p=>{
+    const q = $('payoutSearchBox').value.trim().toLowerCase();
+    if(q && !p.firm.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  list.sort((a,b)=>{
+    let va=a[psortKey], vb=b[psortKey];
+    if(psortKey==='amount'){va=Number(va)||0; vb=Number(vb)||0;}
+    if(va<vb) return -1*psortDir; if(va>vb) return 1*psortDir; return 0;
+  });
+  const body = $('payoutBody'); body.innerHTML = '';
+  $('payoutEmptyState').style.display = payouts.length===0 ? 'block' : 'none';
+  list.forEach(p=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="firm-cell">${escapeHtml(p.firm)}<div class="market-tag">${p.market||''}</div></td>
+      <td class="mono" style="color:var(--accent-light); font-weight:600;">${fmtMoney(p.amount)}</td>
+      <td class="dim mono">${p.date||''}</td>
+      <td class="dim" style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.notes||'—')}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn" data-pedit="${p.id}" title="Edit">✎</button>
+        <button class="icon-btn danger" data-pdel="${p.id}" title="Delete">✕</button>
+      </div></td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('[data-pedit]').forEach(b=>b.addEventListener('click',()=>openEditPayout(b.dataset.pedit)));
+  body.querySelectorAll('[data-pdel]').forEach(b=>b.addEventListener('click',()=>deletePayout(b.dataset.pdel)));
+  renderStats();
+}
+function openAddPayout(){
+  editingPayoutId = null;
+  $('payoutModalTitle').textContent = 'Add Payout';
+  $('p_market').value = 'futures';
+  populateFirmSelect($('p_firm'), 'futures');
+  $('p_amount').value=''; $('p_date').value = new Date().toISOString().slice(0,10); $('p_notes').value='';
+  $('payoutOverlay').classList.add('open');
+}
+function openEditPayout(id){
+  const p = payouts.find(x=>x.id===id); if(!p) return;
+  editingPayoutId = id;
+  $('payoutModalTitle').textContent = 'Edit Payout';
+  $('p_market').value = p.market || 'futures';
+  populateFirmSelect($('p_firm'), $('p_market').value, p.firm);
+  $('p_amount').value=p.amount; $('p_date').value=p.date; $('p_notes').value=p.notes||'';
+  $('payoutOverlay').classList.add('open');
+}
+function closePayoutModal(){ $('payoutOverlay').classList.remove('open'); }
+function saveFromPayoutModal(){
+  const firmVal = $('p_firm').value;
+  if(!firmVal || firmVal==='__new__'){ showToast('Select a firm'); return; }
+  const data = { market:$('p_market').value, firm:firmVal, amount:Number($('p_amount').value)||0,
+    date:$('p_date').value, notes:$('p_notes').value.trim() };
+  if(editingPayoutId){
+    const idx = payouts.findIndex(p=>p.id===editingPayoutId);
+    payouts[idx] = {...payouts[idx], ...data};
+    showToast('Payout updated');
+  } else {
+    payouts.push({id:uid('pay'), ...data});
+    showToast('Payout logged');
+  }
+  savePayouts(); closePayoutModal(); renderPayouts();
+}
+function deletePayout(id){
+  const p = payouts.find(x=>x.id===id); if(!p) return;
+  if(!confirm(`Remove ${fmtMoney(p.amount)} payout from ${p.firm}?`)) return;
+  payouts = payouts.filter(x=>x.id!==id);
+  savePayouts(); showToast('Payout removed'); renderPayouts();
+}
+function exportPayoutsCSV(){
+  const rows = [['Market','Firm','Amount','Date','Notes']];
+  payouts.forEach(p=>rows.push([p.market,p.firm,p.amount,p.date,p.notes||'']));
+  downloadCSV(rows, 'prop-firm-payouts.csv');
+}
+function downloadCSV(rows, filename){
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- EVENTS ---------- */
+$('addBtn').addEventListener('click', openAdd);
+$('emptyAddBtn').addEventListener('click', openAdd);
+$('cancelBtn').addEventListener('click', closeModal);
+$('saveBtn').addEventListener('click', saveFromModal);
+$('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
+$('exportBtn').addEventListener('click', exportCSV);
+$('searchBox').addEventListener('input', render);
+
+$('addPayoutBtn').addEventListener('click', openAddPayout);
+$('emptyAddPayoutBtn').addEventListener('click', openAddPayout);
+$('payoutCancelBtn').addEventListener('click', closePayoutModal);
+$('payoutSaveBtn').addEventListener('click', saveFromPayoutModal);
+$('payoutOverlay').addEventListener('click', (e)=>{ if(e.target.id==='payoutOverlay') closePayoutModal(); });
+$('exportPayoutsBtn').addEventListener('click', exportPayoutsCSV);
+$('payoutSearchBox').addEventListener('input', renderPayouts);
+
+$('manageOverlay').addEventListener('click', (e)=>{ if(e.target.id==='manageOverlay') $('manageOverlay').classList.remove('open'); });
+
+document.getElementById('filterPills').querySelectorAll('.pill-filter').forEach(p=>{
+  p.addEventListener('click', ()=>{
+    document.querySelectorAll('.pill-filter').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active'); currentFilter = p.dataset.filter; render();
+  });
+});
+document.querySelectorAll('thead th[data-sort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.sort;
+    if(sortKey===key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+    render();
+  });
+});
+document.querySelectorAll('thead th[data-psort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.psort;
+    if(psortKey===key) psortDir *= -1; else { psortKey = key; psortDir = 1; }
+    renderPayouts();
+  });
+});
+
+loadAll();
+</script>
+
+<!-- Optional cloud sync layer. If this fails to load or isn't configured yet,
+     the app above still works completely fine on localStorage alone. -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ---- PASTE YOUR FIREBASE CONFIG HERE (see setup guide) ----
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_AUTH_DOMAIN",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+// -------------------------------------------------------------
+
+try{
+  if(firebaseConfig.apiKey.startsWith('PASTE_YOUR')){
+    console.info('Firebase not configured yet — running in local-only mode.');
+  } else {
+    const fbApp = initializeApp(firebaseConfig);
+    const db = getFirestore(fbApp);
+    const ledgerId = window.LedgerApp.getLedgerId();
+    const ref = doc(db, 'ledgers', ledgerId);
+
+    window.LedgerApp.onSave = (snapshot) => {
+      setDoc(ref, { ...snapshot, updatedAt: Date.now() }).catch(err=>{
+        console.error('Cloud save failed', err);
+      });
+    };
+
+    let firstSnapshot = true;
+    onSnapshot(ref, (snap)=>{
+      if(snap.exists()){
+        window.LedgerApp.applyRemote(snap.data());
+      } else if(firstSnapshot){
+        setDoc(ref, { ...window.LedgerApp.getSnapshot(), updatedAt: Date.now() }).catch(err=>{
+          console.error('Initial cloud save failed', err);
+        });
+      }
+      firstSnapshot = false;
+    }, (err)=>{
+      console.warn('Cloud sync unavailable — staying in local-only mode.', err);
+    });
+  }
+}catch(e){
+  console.warn('Firebase failed to initialize — running in local-only mode.', e);
+}
+</script>
+</body>
+</html>
